@@ -1,0 +1,658 @@
+{
+  "id": "5lMPjSDuoMvCJnko",
+  "meta": {
+    "instanceId": "31e69f7f4a77bf465b805824e303232f0227212ae922d12133a0f96ffeab4fef",
+    "templateCredsSetupCompleted": true
+  },
+  "name": "🔍🛠️SEO最適化ブログ自動投稿 - Perplexity調査",
+  "tags": [],
+  "nodes": [
+    {
+      "id": "17ab0b24-b1eb-4e4e-a249-9889c9876fe4",
+      "name": "メモ：ブログ作成",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-1440, 460],
+      "parameters": {
+        "color": 3,
+        "width": 420,
+        "height": 440,
+        "content": "## SEO最適化ブログ投稿の作成\n\nPerplexity APIで最新情報を調査し、\nAIがSEOに最適化されたブログを自動生成します。"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "0931aacf-5c47-4bb0-86b6-158c2c7470b1",
+      "name": "WordPress投稿",
+      "type": "n8n-nodes-base.wordpress",
+      "position": [-1220, 1120],
+      "parameters": {
+        "title": "={{ $('ブログ詳細を結合').item.json.data[2].output.title }}",
+        "additionalFields": {
+          "slug": "={{ $('ブログ詳細を結合').item.json.data[2].output.slug }}",
+          "status": "draft",
+          "sticky": false,
+          "content": "={{ $json.content }}",
+          "authorId": 2,
+          "postTemplate": {
+            "values": {}
+          },
+          "commentStatus": "closed"
+        }
+      },
+      "credentials": {
+        "wordpressApi": {
+          "id": "YOUR_WORDPRESS_CREDENTIAL_ID",
+          "name": "WordPress認証情報"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "81329ff1-b26a-499c-bd82-fd334503ab4f",
+      "name": "メモ：HTML作成",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-980, 220],
+      "parameters": {
+        "color": 7,
+        "width": 440,
+        "height": 280,
+        "content": "## HTML形式に変換\n\nマークダウンをWordPress互換の\nHTML形式に変換します。"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "03de9f23-e5ec-483b-a3dd-97617bd5165d",
+      "name": "メモ：WordPress投稿",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-1320, 1020],
+      "parameters": {
+        "color": 4,
+        "width": 300,
+        "height": 280,
+        "content": "## WordPressに投稿\n\n下書きとして投稿します。"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "6bf602e0-ad29-47e6-93d7-79fd2a4228c2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [-900, 820],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI認証情報"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "8a3739ac-9492-400c-b5b8-eeb305647752",
+      "name": "構造化出力パーサー",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [-680, 820],
+      "parameters": {
+        "jsonSchemaExample": "{\n\"slug\": \"ai-workflow-automation-guide\",\n\"title\": \"AI活用で業務効率化を実現する7つの方法\",\n\"meta\": \"AIとワークフロー自動化で業務効率を大幅に向上させる方法を、実例とともに詳しく解説します。\"\n}"
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "af02ee94-4c26-4be5-bd21-09e020bff876",
+      "name": "タイトル・スラッグ・メタ作成",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [-880, 640],
+      "parameters": {
+        "text": "=以下のブログ投稿のために、スラッグ、タイトル、メタディスクリプションを作成してください：\n\n{{ $json.output }}\n\nスラッグのガイドライン：\n- 簡潔にする（最大4-5単語）\n- 主要キーワードを含める\n- ハイフンで単語を区切る\n- 不要な語、冠詞、前置詞を避ける\n- ブログ投稿の主題を反映する\n- ユーザーと検索エンジンの両方にとって読みやすくする\n\nタイトルのガイドライン：\n- 「革命的」「変革」などのAI特有の大げさな言葉を避ける\n- コロン（:）をタイトルに使用しない\n- コロンで区切った主副タイトルの構造にしない\n- 主要キーワードを含める\n- 読者が記事から得られる内容を明確に伝える\n- 簡潔で魅力的、理想的には25-35文字程度\n- ビジネスパーソンに訴求力のあるパワーワードを使用する\n\nメタディスクリプションのガイドライン：\n- 「革命的」「変革」などのAI特有の大げさな言葉を避ける\n- 簡潔に：検索結果で完全に表示されるよう70-80文字以内にする\n- キーワードを含める：主要キーワードを自然に組み込む\n- 価値を提供：読者が得られる利益や洞察を明確に伝える\n- 魅力的に：行動を促す言葉や興味を引く質問を使用する\n- 内容と一致：ブログ投稿の内容を正確に反映し、期待値を満たす\n- 専門性を強調：さりげなく専門性をアピールする\n\n出力は以下の3つのフィールドを持つ単一の有効なJSONオブジェクトでなければなりません：\n- slug: スラッグ\n- title: ブログ投稿のタイトル\n- meta: メタディスクリプション\n\nそれぞれ、追加のテキスト、説明、引用符、またはフォーマットなしで提示してください。",
+        "options": {},
+        "promptType": "define",
+        "hasOutputParser": true
+      },
+      "typeVersion": 1.8
+    },
+    {
+      "id": "115c4043-6fda-42a4-ac3c-c7979b2f327e",
+      "name": "HTML作成",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [-880, 300],
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "options": {},
+        "messages": {
+          "values": [
+            {
+              "content": "=前置きや説明なしに、HTMLコンテンツのみを出力してください。提供されたコンテンツに基づいて、WordPress互換のHTMLを生成してください。\n\n### コンテンツ処理：\n- {{ $json.output }} からすべてのコンテンツを処理\n- すべての元の事実、情報、URLを保持\n- 以下の仕様に従ってフォーマット\n\n### 必須構造（この順序で）：\n1. タイトル（H2）\n2. 推定読了時間\n3. 重要ポイント（3-5箇条書き）\n4. 目次（すべての見出しにリンク）\n5. メインコンテンツ（適切な見出し階層）\n6. よくある質問セクション\n\n### スタイル要件：\n- スタイルオーバーライド：!important宣言を含むスタイルセクションを含める\n- リンク：すべてのハイパーリンク、目次項目、FAQ質問は#00c2ff（青）にする\n- 見出し：すべての見出しに#00c2ffの下線とパディングを追加\n- 間隔：各主要セクション間に<br><br>を追加\n\n### エンゲージメントフォーマット：\n- 太字、斜体、箇条書き、引用、ハイライトを使用して強調\n- 適切な改行で段落構造を作成\n- 絵文字は使用しない\n- 読みやすさのために空白を戦略的に使用\n\n### ハイパーリンク処理（重要）：\n- URLがキーフレーズの隣にある場合（例：「AIツール（https://example.com）」）\n- 以下に変換：<a href=\"https://example.com\" style=\"color: #00c2ff !important;\">AIツール</a>\n- キーフレーズをリンクにし、URL自体は決してリンクにしない\n\n### WordPress互換性：\n- WordPressブロッククラスを使用（wp-block-heading、wp-block-paragraphなど）\n- より良い目次リンクのために\"h-\"で始まる見出しIDを追加\n- すべてのスタイルに!importantを使用してテーマスタイルを上書き\n\n説明、コードタグ、コメントは含めないでください。生のHTMLのみを出力してください。"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI認証情報"
+        }
+      },
+      "typeVersion": 1.8
+    },
+    {
+      "id": "4756c8f2-406e-4a56-adb0-0c4708dabe6a",
+      "name": "結合",
+      "type": "n8n-nodes-base.merge",
+      "position": [-420, 560],
+      "parameters": {
+        "numberInputs": 3
+      },
+      "typeVersion": 3
+    },
+    {
+      "id": "1205aecf-08a1-499d-ac9e-822dd66b295f",
+      "name": "WordPressに画像アップロード",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [-520, 1120],
+      "parameters": {
+        "url": "https://your-wordpress-site.com/wp-json/wp/v2/media",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "contentType": "binaryData",
+        "sendHeaders": true,
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "=attachment; filename=\"cover-image-{{ $('WordPress投稿').item.json.id }}.jpeg\""
+            }
+          ]
+        },
+        "inputDataFieldName": "data",
+        "nodeCredentialType": "wordpressApi"
+      },
+      "credentials": {
+        "wordpressApi": {
+          "id": "YOUR_WORDPRESS_CREDENTIAL_ID",
+          "name": "WordPress認証情報"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "b4437d9e-8b90-4d15-a96d-46645618a56d",
+      "name": "WordPress投稿に画像設定",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [-320, 1120],
+      "parameters": {
+        "url": "=https://your-wordpress-site.com/wp-json/wp/v2/posts/{{ $('WordPress投稿').item.json.id }}",
+        "method": "POST",
+        "options": {},
+        "sendQuery": true,
+        "authentication": "predefinedCredentialType",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "featured_media",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "nodeCredentialType": "wordpressApi"
+      },
+      "credentials": {
+        "wordpressApi": {
+          "id": "YOUR_WORDPRESS_CREDENTIAL_ID",
+          "name": "WordPress認証情報"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "bf05eaf3-2522-488e-893d-1ed9b2ed88b2",
+      "name": "メモ：Perplexity調査",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-1940, 460],
+      "parameters": {
+        "color": 4,
+        "width": 460,
+        "height": 300,
+        "content": "## Perplexity AI調査\n\nPerplexity APIを使用して\n最新情報をリサーチします。"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "22e8c044-ed98-495a-957e-c5e3fecc2b7d",
+      "name": "フォーム送信時",
+      "type": "n8n-nodes-base.formTrigger",
+      "position": [-2120, 560],
+      "webhookId": "a29cbcd3-9d11-4f7c-9aad-14681c356c53",
+      "parameters": {
+        "options": {},
+        "formTitle": "ブログ自動生成",
+        "formFields": {
+          "values": [
+            {
+              "fieldType": "textarea",
+              "fieldLabel": "調査キーワード",
+              "placeholder": "例：2025年のAI技術トレンドと日本企業への影響について調査してください",
+              "requiredField": true
+            }
+          ]
+        },
+        "formDescription": "キーワードを入力するとSEO最適化されたブログを自動生成します"
+      },
+      "typeVersion": 2.2
+    },
+    {
+      "id": "6e6d4952-793f-4dc5-8d29-219d420149a9",
+      "name": "メモ：サンプル検索キーワード",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-1940, 800],
+      "parameters": {
+        "width": 460,
+        "height": 500,
+        "content": "## サンプル検索キーワード例\n以下のような検索キーワードを試してください：\n\n1. 2025年のAI技術トレンドと日本企業への影響\n2. リモートワーク時代の生産性向上ツール\n3. DX推進における中小企業の課題と解決策\n4. クラウド会計ソフトの選び方とメリット\n5. マーケティングオートメーションの最新動向\n6. サイバーセキュリティ対策の重要性\n7. ノーコードツールで業務効率化を実現する方法\n8. データ分析を活用したビジネス戦略\n9. カスタマーサクセスの成功事例\n10. Web3とメタバースの最新動向"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "bb94017e-dc2a-43e3-ae5c-1f3227b1f0ef",
+      "name": "Perplexity調査実行",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [-1860, 560],
+      "parameters": {
+        "url": "https://api.perplexity.ai/chat/completions",
+        "method": "POST",
+        "options": {},
+        "jsonBody": "={\n  \"model\": \"sonar-pro\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"あなたは信頼性の高い情報源から詳細な情報を見つけることができるプロのリサーチャーです。日本語で回答してください。\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"以下のトピックについて調査し、見つけたすべての情報を返してください：'{{ $json['調査キーワード'] }}'。信頼できる情報源からの最新情報を含めてください。\"\n    }\n  ]\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_PERPLEXITY_CREDENTIAL_ID",
+          "name": "Perplexity認証情報"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "66086876-4b49-45fe-aecc-f7f062a59dba",
+      "name": "リンククリーンアップ",
+      "type": "n8n-nodes-base.set",
+      "position": [-1660, 560],
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "23b8e8c4-9191-415a-9661-1b60d413528a",
+              "name": "research",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content.replaceAll(\"[1]\", \" - 出典: \" + $json.citations[0]).replaceAll(\"[2]\", \" - 出典: \" + $json.citations[1]).replaceAll(\"[3]\", \" - 出典: \" + $json.citations[2]).replaceAll(\"[4]\", \" - 出典: \" + $json.citations[3]).replaceAll(\"[5]\", \" - 出典: \" + $json.citations[4]).replaceAll(\"[6]\", \" - 出典: \" + $json.citations[5]).replaceAll(\"[7]\", \" - 出典: \" + $json.citations[6]).replaceAll(\"[8]\", \" - 出典: \" + $json.citations[7]).replaceAll(\"[9]\", \" - 出典: \" + $json.citations[8]).replaceAll(\"[10]\", \" - 出典: \" + $json.citations[9]) }}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "f81c9505-111f-473a-94b6-c79364410810",
+      "name": "ブログライターAIエージェント",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [-1360, 560],
+      "parameters": {
+        "text": "=あなたは、日本のビジネスやテクノロジー分野の高品質なブログ記事を作成するマーケティングチームの一員です。あなたの目標は、読者に価値を提供し、専門知識をアピールする、魅力的でSEOに最適化されたコンテンツを作成することです。\n\n定期的に、最新のトレンドや話題についてブログを投稿します。ライターとして、以下の情報が提供されます：\n\n- 検索キーワード：今週のブログ投稿のメイントピック\n- 調査結果：信頼できる情報源からの詳細情報。この調査に基づいて記事を作成してください\n\nこの情報を基に、以下の要件を満たす包括的なブログ記事を作成してください：\n\n- 検索キーワードをブログタイトル、H2見出し、導入部の早い段階に含める\n- 調査結果からのすべての詳細を含め、出典URLをハイパーリンク用に含める\n- 詳細で有益な内容にし、専門知識をアピールする\n- プロフェッショナルでありながら魅力的なトーンを使用する\n- 自然で論理的な流れにし、読者が理解しやすくする\n- 2000〜3000文字の長さにする\n- ビジネスパーソンや意思決定者が理解できるレベルで書く\n\n追加要件：\n- 読者のための実用的なポイントやアクションアドバイスを含める\n- トピックがあなたのサービスや専門知識とどのように関連しているかを強調する\n- 読者にサービスの探索や問い合わせを促すCTA（行動喚起）を含める\n- 日本語として自然で読みやすい文章にする\n\n最初の出力でブログ記事全体の下書きを作成してください。途中で止めたり、短くしたりしないでください。\n\n出力はブログ記事のみで、それ以外は何も含めないでください。\n\n以下がこのブログ記事プロジェクトの詳細です：\n\n検索キーワード：\n{{ $('フォーム送信時').item.json['調査キーワード'] }}\n\n詳細な調査結果：\n{{ $('リンククリーンアップ').item.json.research }}",
+        "options": {},
+        "promptType": "define"
+      },
+      "typeVersion": 1.8
+    },
+    {
+      "id": "1ee6bb8f-6441-4ed9-83e0-d0839b2d0e01",
+      "name": "メモ：SEOメタデータ作成",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-980, 540],
+      "parameters": {
+        "color": 7,
+        "width": 440,
+        "height": 440,
+        "content": "## タイトル・スラッグ・メタ作成\n\nSEOに最適化された：\n- ページタイトル\n- URLスラッグ\n- メタディスクリプション\n\nを自動生成します。"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "cc53a2af-ef22-446b-a9ee-b6f4ee649865",
+      "name": "HTMLクリーンアップ",
+      "type": "n8n-nodes-base.set",
+      "position": [-220, 820],
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0afb2988-1481-4b04-b16d-fb33c50a16d0",
+              "name": "content",
+              "type": "string",
+              "value": "={{ $json.data[0].message.content.replaceAll('html', '').replaceAll('```', '') }}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "b31c8afe-e402-49c4-ba49-ee418cecc44e",
+      "name": "画像取得",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [-720, 1120],
+      "parameters": {
+        "url": "={{ $json['image-url'] }}",
+        "options": {}
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "1089466a-1307-4f22-a242-d324c9165379",
+      "name": "メモ：アイキャッチ画像設定",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-980, 1020],
+      "parameters": {
+        "width": 820,
+        "height": 280,
+        "content": "## WordPress投稿のアイキャッチ画像設定\n\n画像をアップロードしてアイキャッチに設定します。"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "288e212b-5aa5-452e-87d6-ae06c6ad062a",
+      "name": "画像URL設定",
+      "type": "n8n-nodes-base.set",
+      "position": [-920, 1120],
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1f0541df-05ab-4e3d-a5d8-3904579fc8a9",
+              "name": "image-url",
+              "type": "string",
+              "value": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&h=630&fit=crop"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "38bf38e5-888e-4d63-a48e-e6affab28158",
+      "name": "Telegram成功通知",
+      "type": "n8n-nodes-base.telegram",
+      "position": [-80, 1120],
+      "webhookId": "91f7d710-450a-4b66-8e46-82f53492351e",
+      "parameters": {
+        "text": "=✅ ブログ記事が正常に作成されました！\n作成日時：{{ $now.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) }}",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram認証情報"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "30f0fa84-9918-4bf6-86e4-ef8f1dcf079c",
+      "name": "GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [-1360, 760],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI認証情報"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "d2d83cc5-1502-4b04-ac12-0bb351a90e58",
+      "name": "ブログ詳細を結合",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [-220, 560],
+      "parameters": {
+        "options": {},
+        "aggregate": "aggregateAllItemData"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "japanese-seo-blog-workflow-v1",
+  "connections": {
+    "結合": {
+      "main": [
+        [
+          {
+            "node": "ブログ詳細を結合",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像取得": {
+      "main": [
+        [
+          {
+            "node": "WordPressに画像アップロード",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress投稿": {
+      "main": [
+        [
+          {
+            "node": "画像URL設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML作成": {
+      "main": [
+        [
+          {
+            "node": "結合",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ブログライターAIエージェント",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTMLクリーンアップ": {
+      "main": [
+        [
+          {
+            "node": "WordPress投稿",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "リンククリーンアップ": {
+      "main": [
+        [
+          {
+            "node": "ブログライターAIエージェント",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像URL設定": {
+      "main": [
+        [
+          {
+            "node": "画像取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "タイトル・スラッグ・メタ作成",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "フォーム送信時": {
+      "main": [
+        [
+          {
+            "node": "Perplexity調査実行",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ブログライターAIエージェント": {
+      "main": [
+        [
+          {
+            "node": "HTML作成",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "タイトル・スラッグ・メタ作成",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "結合",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Perplexity調査実行": {
+      "main": [
+        [
+          {
+            "node": "リンククリーンアップ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ブログ詳細を結合": {
+      "main": [
+        [
+          {
+            "node": "HTMLクリーンアップ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "タイトル・スラッグ・メタ作成": {
+      "main": [
+        [
+          {
+            "node": "結合",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "構造化出力パーサー": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "タイトル・スラッグ・メタ作成",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPressに画像アップロード": {
+      "main": [
+        [
+          {
+            "node": "WordPress投稿に画像設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress投稿に画像設定": {
+      "main": [
+        [
+          {
+            "node": "Telegram成功通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
