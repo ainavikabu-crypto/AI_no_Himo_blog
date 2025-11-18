@@ -353,7 +353,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://ainohimo.com/wp-json/wp/v2/media",
+        "url": "={{ $env.WORDPRESS_SITE_URL || 'https://your-wordpress-site.com' }}/wp-json/wp/v2/media",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "sendHeaders": true,
@@ -388,7 +388,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://ainohimo.com/wp-json/wp/v2/posts/{{ $('WordPress投稿').item.json.id }}",
+        "url": "={{ $env.WORDPRESS_SITE_URL || 'https://your-wordpress-site.com' }}/wp-json/wp/v2/posts/{{ $('WordPress投稿').item.json.id }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "sendQuery": true,
@@ -433,13 +433,7 @@
         352
       ],
       "webhookId": "aihimo-blog-complete",
-      "typeVersion": 1.2,
-      "credentials": {
-        "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
-          "name": "Telegram account"
-        }
-      }
+      "typeVersion": 1.2
     },
     {
       "parameters": {
@@ -728,7 +722,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "fixed-wordpress-url-v1",
+  "versionId": "env-variable-support-v2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "473228005ea31adb7a041f8b22aecdbae142cdd88016811bd0eaa187a833c47a"

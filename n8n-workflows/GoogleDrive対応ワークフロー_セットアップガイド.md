@@ -140,21 +140,45 @@ Telegram通知
    - **Drive**: My Drive
    - **Folder**: フォルダIDを入力（または選択）
 
-### ステップ5: WordPress URL設定
+### ステップ5: WordPress URL設定（環境変数を使用 - 推奨）
 
-以下のノードでWordPress URLを更新：
+**v2.0.0以降、WordPress URLは環境変数から自動取得されます。**
+
+#### 環境変数の設定方法
+
+**Docker の場合:**
+```bash
+docker run -it --rm \
+  --name n8n \
+  -p 5678:5678 \
+  -e WORDPRESS_SITE_URL=https://your-site.com \
+  -e TELEGRAM_CHAT_ID=your-chat-id \
+  -v ~/.n8n:/home/node/.n8n \
+  n8nio/n8n
+```
+
+**npm の場合:**
+```bash
+export WORDPRESS_SITE_URL=https://your-site.com
+export TELEGRAM_CHAT_ID=your-chat-id
+n8n start
+```
+
+**n8n Cloud の場合:**
+1. n8n Cloud ダッシュボードにログイン
+2. **Settings** → **Environments** に移動
+3. 環境変数を追加:
+   - Key: `WORDPRESS_SITE_URL`
+   - Value: `https://your-site.com`
+
+#### 旧バージョン（v1.x）からの移行
+
+v1.xを使用している場合、以下のノードでWordPress URLを手動で更新する必要があります：
 
 1. **WordPressに画像アップロード**ノード
-   ```
-   https://your-wordpress-site.com/wp-json/wp/v2/media
-   ```
-   → あなたのWordPress URLに変更
-
 2. **WordPress投稿に画像設定**ノード
-   ```
-   https://your-wordpress-site.com/wp-json/wp/v2/posts/
-   ```
-   → あなたのWordPress URLに変更
+
+**v2.0.0にアップグレードすることを強く推奨します。**
 
 ---
 
@@ -310,3 +334,29 @@ const fileName = `${metadata.slug}.html`;
 ✅ **WordPress連携**: 下書きとして自動投稿
 
 問題が発生した場合は、各ノードの出力を確認し、エラーメッセージを参照してください。
+
+---
+
+## 変更履歴
+
+### v2.0.0 (2025-01-18) - 環境変数対応版
+
+**重要な変更:**
+- ✅ WordPress URLを環境変数から取得するように改善
+  - `WORDPRESS_SITE_URL` 環境変数をサポート
+  - ハードコードされたURLを削除
+- ✅ Telegram認証情報のプレースホルダーを削除
+  - 手動で設定が必要（オプション）
+- ✅ トラブルシューティングガイドを追加
+  - `WORDPRESS_TROUBLESHOOTING.md` を参照
+
+**移行方法:**
+1. 環境変数 `WORDPRESS_SITE_URL` を設定
+2. ワークフローを再インポート
+3. 各認証情報を再設定
+
+### v1.0.0 (2025-01-17)
+- 初回リリース
+- Google Drive保存機能
+- WordPress自動投稿
+- Telegram通知
