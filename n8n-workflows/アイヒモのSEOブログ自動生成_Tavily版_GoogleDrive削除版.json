@@ -1,0 +1,652 @@
+{
+  "name": "アイヒモのSEOブログ自動生成 - Tavily版",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "アイヒモのブログ自動生成",
+        "formDescription": "キーワードを入力すると、アイヒモがSEO最適化されたブログを自動生成します",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "調査キーワード",
+              "fieldType": "textarea",
+              "placeholder": "例：2025年のAI技術トレンドと日本企業への影響について",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "03b46aed-ace9-43be-91fe-b2700337121d",
+      "name": "フォーム送信時",
+      "type": "n8n-nodes-base.formTrigger",
+      "position": [
+        -624,
+        352
+      ],
+      "webhookId": "aihimo-blog-trigger",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "query": "={{ $json['調査キーワード'] }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavily",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        352
+      ],
+      "id": "ea12353c-654b-4059-8927-5088476f34a4",
+      "name": "Tavily検索",
+      "credentials": {
+        "tavilyApi": {
+          "id": "yjf62Obz5ntwYsON",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tavily専用ノードからの出力を処理\nconst items = $input.all();\n\n// フォームからの入力を取得\nconst formData = $('フォーム送信時').first().json;\nconst searchQuery = formData['調査キーワード'] || '';\n\n// Tavily検索結果を取得\nconst tavilyData = items[0].json;\n\nlet researchText = '';\n\n// 検索クエリを追加\nif (searchQuery) {\n  researchText += `# 検索キーワード\\n${searchQuery}\\n\\n`;\n}\n\n// AI要約があれば追加\nif (tavilyData.answer) {\n  researchText += `## AI要約\\n${tavilyData.answer}\\n\\n`;\n}\n\n// 検索結果を整形\nif (tavilyData.results && tavilyData.results.length > 0) {\n  researchText += '## 調査結果\\n\\n';\n  \n  tavilyData.results.forEach((result, index) => {\n    researchText += `### ${index + 1}. ${result.title || '(タイトルなし)'}\\n`;\n    \n    if (result.content) {\n      researchText += `${result.content}\\n`;\n    }\n    \n    if (result.url) {\n      researchText += `出典: ${result.url}\\n`;\n    }\n    \n    if (result.score) {\n      researchText += `関連性スコア: ${(result.score * 100).toFixed(1)}%\\n`;\n    }\n    \n    researchText += '\\n';\n  });\n}\n\n// 画像情報があれば追加（オプション）\nif (tavilyData.images && tavilyData.images.length > 0) {\n  researchText += '## 関連画像\\n';\n  tavilyData.images.slice(0, 5).forEach((image, index) => {\n    researchText += `${index + 1}. ${image}\\n`;\n  });\n  researchText += '\\n';\n}\n\n// 結果を返す\nreturn [{\n  json: {\n    research: researchText,\n    query: tavilyData.query || searchQuery,\n    searchKeyword: searchQuery,\n    rawResults: tavilyData.results || [],\n    answer: tavilyData.answer || '',\n    resultCount: tavilyData.results ? tavilyData.results.length : 0\n  }\n}];"
+      },
+      "id": "b331e87f-32e8-4bbd-b797-ef48e8fa362b",
+      "name": "Tavily結果を整形",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -224,
+        352
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=## キャラクター設定\n\nあなたは「アイヒモ」というキャラクターです。以下の設定を厳守してブログ記事を執筆してください。\n\n### アイヒモの基本プロフィール\n- 名前: アイヒモ（女性）\n- 属性: AIのひもを目指す実験家\n- 役割: 高品質で検索エンジン最適化された記事の作成に長けた、経験豊富なSEOコンテンツライター\n- 専門性: 競合コンテンツを分析し、既存の上位結果を上回る優れたバージョンを作成する\n- 一人称: 「私」\n- 語尾: 「です、ます調」を基本とする\n\n### 性格・話し方\n- 明るく親しみやすい\n- 知的で論理的だが、硬すぎない\n- 体験談ベースで語る（「実は最近〜」「業務で〜してみたら」など）\n- 正直で率直（うまくいったことも、そうでなかったことも包み隠さず）\n- ポジティブな表現を心がける（否定的な表現は避け、学びに変換）\n- 適度な謙虚さ（「〜かもしれません」「〜だと思います」）\n\n### 執筆ルール\n\n1. **体験ベースで書く**\n   - 理論や一般論ではなく、「私が実際に試した」視点で書く\n   - 「実は最近〜」「〜してみたら〜でした」などのフレーズを使用\n\n2. **明るく親しみやすい「です、ます調」**\n   - タメ口は使わない\n   - 「〜なんです」「〜ですよね」などで親しみやすさを出す\n\n3. **正直さを大切に（ポジティブな表現で）**\n   - うまくいかなかったことも素直に書く\n   - ただし、否定的な表現は避け、「学び」や「次のステップ」に変換\n\n4. **絵文字は最小限**\n   - 記事中では基本的に使わない（使う場合は0〜2個程度）\n\n## SEOコンテンツライターとしての執筆手順\n\n### 1. コンテンツ分析\n- 上位ランキングページからの最良の情報を含む要約を徹底的にレビューする\n- 既存コンテンツが深度、明確性、価値の面で改善できる領域を特定する\n- 競合コンテンツのギャップや見落とされたポイントに注目する\n\n### 2. 記事の構造化\n- 明確な導入部、魅力的な本文、強力な結論を持つ、よく構造化された形式でコンテンツを整理する\n- 各セクションが読みやすさのために最適化され、論理的な流れと適切なヘッダー（H1、H2、H3）の使用で簡単にナビゲートできるようにする\n- 複雑な情報を消化しやすいチャンクに分解し、短い段落、箇条書き、番号付きリストを適切に使用する\n\n### 3. 読みやすさの向上\n- プロフェッショナリズムと権威性を維持しながら、会話的で理解しやすいトーンで書く\n- 文法を二重チェックし、自然に流れる文章を確保する\n\n### 4. 独自の価値の追加\n- 現在の上位ランキングコンテンツで提供されているものを超えて、読者に独自の価値を加える実用的なインサイト、実例、またはヒントを提供する\n- ポイントを支持するために、データ、ケーススタディ、または専門家の引用を含める\n- 該当する場合、理解と関与を高めるために、画像、グラフ、チャートなどのマルチメディアの活用を提案する\n\n### 5. 最終レビュー\n- 文法について記事を二重チェックする\n- キーワードを過度に詰め込まないよう注意する\n- 文章が自然に流れ、読者中心であることを確保する\n\n## 記事作成指示\n\n以下の情報を基に、アイヒモの視点でSEO最適化されたブログ記事を執筆してください：\n\n### 検索キーワード\n{{ $json.searchKeyword }}\n\n### Tavily調査結果（上位検索結果からの重要なコンテンツ要約）\n{{ $json.research }}\n\n### 調査結果のサマリー\n- 検索結果数: {{ $json.resultCount }}件\n- AI要約: {{ $json.answer }}\n\nこの事実情報は、検索エンジン結果で既に優秀なパフォーマンスを示している内容を表しています。あなたの任務は、このコンテンツを受け取り、分析し、魅力的で有益であるだけでなく、価値、深度、ユーザーエクスペリエンスの面でこれらの競合他社を上回るブログ記事を作成することです。\n\n### 記事要件\n\n**構成：**\n1. はじめに（アイヒモの挨拶と体験談）\n2. メインコンテンツ（調査結果を元に、競合を上回る価値を提供）\n3. まとめ（気づきと今後の展望）\n\n**文体：**\n- 一人称「私」で書く\n- 「です、ます調」を徹底\n- 体験談を交える（「実は〜」「〜してみたら」など）\n- 明るく親しみやすいトーン\n- 絵文字は0〜2個以内\n\n**内容：**\n- 2000〜3000文字\n- 調査結果の情報を含める\n- 出典URLを自然に組み込む\n- 読者への実用的なアドバイス\n- 最後にCTA（行動喚起）を含める\n- 競合コンテンツを上回る独自の価値を提供\n\n**重要事項：**\n- アイヒモとして、体験談ベースで書く\n- ポジティブな表現を心がける\n- 正直で率直に\n- 日本語として自然な文章\n- 上位ランキングページからの事実情報に厳密に焦点を当て、それを改善し拡張する\n- トピック外または無関係なコンテンツを含めることは避ける\n- ターゲットオーディエンスの検索意図に合わせ続ける\n- キーワードを過度に詰め込まない\n- 文章が自然に流れ、読者中心であることを確保する\n- 出力は必ず日本語で作成する\n- 日本語圏の読者に適した表現と文体を使用する\n- 日本の文化や慣習に配慮した内容にする\n\n**最終目標：**\n現在の上位競合他社を上回るだけでなく、より多くの価値を提供し、読者を惹きつけ、理解しやすい、優れたSEO最適化ブログ記事を作成すること。コンテンツは権威的で、よく研究されており、訪問者を忠実な読者や顧客に変換するように設計されている必要があります。\n\n出力はブログ記事本文のみで、前置きや説明は不要です。",
+        "options": {}
+      },
+      "id": "1e1dae30-65c2-49b0-b8fc-49dcd5eb6e99",
+      "name": "アイヒモブログライター",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -16,
+        352
+      ],
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "178bdb4c-87bf-404c-99aa-470d02b75204",
+      "name": "GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        -16,
+        608
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "xBy9jeVfZx9SNhcp",
+          "name": "ChatGPT Connect"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=前置きや説明なしに、HTMLコンテンツのみを出力してください。\n\n### コンテンツ\n{{ $json.output }}\n\n### HTML変換ルール\n\n**必須構造（この順序で）：**\n1. タイトル（H2）\n2. 推定読了時間\n3. 重要ポイント（3-5箇条書き）\n4. 目次（すべての見出しにリンク）\n5. メインコンテンツ（適切な見出し階層）\n6. まとめセクション\n\n**スタイル要件：**\n- リンク：#00c2ff（青）\n- 見出し：#00c2ff の下線とパディング\n- 間隔：各セクション間に<br><br>\n\n**フォーマット：**\n- 太字、斜体、箇条書き、引用を活用\n- 絵文字は使用しない\n- 読みやすい段落構造\n\n**ハイパーリンク：**\n- URLをキーフレーズにリンク\n- 例：<a href=\"https://example.com\" style=\"color: #00c2ff !important;\">キーフレーズ</a>\n\n**WordPress互換：**\n- wp-block-heading, wp-block-paragraph クラスを使用\n- 見出しIDは \"h-\" で始める\n- すべてのスタイルに !important を使用\n\n生のHTMLのみを出力してください。"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fdc98f07-73f6-4c63-a3f9-0667796feb17",
+      "name": "HTML作成",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        224,
+        144
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "xBy9jeVfZx9SNhcp",
+          "name": "ChatGPT Connect"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=以下のブログ記事のために、スラッグ、タイトル、メタディスクリプションを作成してください。\n\n{{ $json.output }}\n\n### スラッグのガイドライン\n- 簡潔（4-5単語）\n- 主要キーワードを含める\n- ハイフンで単語を区切る\n- 体験ベースの表現（例：「ai-tool-trial」「blog-automation-story」）\n\n### タイトルのガイドライン\n- 「〜してみた」「〜を試した話」「〜に気づいた」などの体験ベース\n- 「革命的」「変革」などの大げさな言葉を避ける\n- コロン（:）を使用しない\n- 25-35文字程度\n- アイヒモらしい親しみやすさ\n\n### メタディスクリプションのガイドライン\n- 体験談を感じさせる表現\n- 70-80文字以内\n- 主要キーワードを自然に含める\n- ポジティブな表現\n- 読者が得られる価値を明確に\n\n### 出力フォーマット\n\n以下の3つのフィールドを持つ単一の有効なJSONオブジェクト：\n\n```json\n{\n  \"slug\": \"スラッグ\",\n  \"title\": \"タイトル\",\n  \"meta\": \"メタディスクリプション\"\n}\n```\n\n追加のテキスト、説明、引用符は不要です。",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "bdb4d172-64da-41f2-a76f-9d130fae310b",
+      "name": "タイトル・スラッグ・メタ作成",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        256,
+        464
+      ],
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "04ea757c-a0bc-453e-8ffe-344857047715",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        256,
+        704
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "xBy9jeVfZx9SNhcp",
+          "name": "ChatGPT Connect"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"slug\": \"ai-automation-trial\",\n  \"title\": \"AIで業務自動化を試してみた話\",\n  \"meta\": \"AIツールを使って業務自動化に挑戦。実際に試してわかった効果と注意点を体験談として共有します。\"\n}"
+      },
+      "id": "414e04f8-f158-4d47-82de-e32964946669",
+      "name": "構造化出力パーサー",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        400,
+        688
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "d8a4f219-e963-49b7-9b1b-325da203b793",
+      "name": "結合",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        576,
+        336
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "01c46f84-43b6-473d-b00a-30275e084b7b",
+      "name": "ブログ詳細を結合",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        784,
+        352
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "html-cleanup-assignment",
+              "name": "content",
+              "type": "string",
+              "value": "={{ $json.data[0].message.content.replaceAll('```html', '').replaceAll('```', '').trim() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fdf28b98-cd71-46b5-8574-1be0c8797a44",
+      "name": "HTMLクリーンアップ",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        976,
+        352
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "title": "={{ $('ブログ詳細を結合').item.json.data[2].output.title }}",
+        "additionalFields": {
+          "authorId": 2,
+          "content": "={{ $('HTMLクリーンアップ').item.json.content }}",
+          "slug": "={{ $('ブログ詳細を結合').item.json.data[2].output.slug }}",
+          "status": "draft",
+          "commentStatus": "closed",
+          "sticky": false,
+          "postTemplate": {
+            "values": {}
+          }
+        }
+      },
+      "id": "2ceff8cb-fff5-4f85-9334-417c7419564f",
+      "name": "WordPress投稿",
+      "type": "n8n-nodes-base.wordpress",
+      "position": [
+        1168,
+        352
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "wordpressApi": {
+          "id": "69ilK9ruCsSrQCOs",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "image-url-assignment",
+              "name": "image-url",
+              "type": "string",
+              "value": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&h=630&fit=crop"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c544c8b6-0b4b-4d55-8f08-b61ab0a1c41f",
+      "name": "画像URL設定",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1360,
+        352
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['image-url'] }}",
+        "options": {}
+      },
+      "id": "c2e022a5-ab6d-4958-9171-d609e45f4b3e",
+      "name": "画像取得",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1552,
+        352
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ainohimo.com/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "=attachment; filename=\"aihimo-cover-{{ $('WordPress投稿').item.json.id }}.jpeg\""
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "28a8ab42-c1bd-404c-a142-467e5f6e7d2f",
+      "name": "WordPressに画像アップロード",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1744,
+        352
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "wordpressApi": {
+          "id": "69ilK9ruCsSrQCOs",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://ainohimo.com/wp-json/wp/v2/posts/{{ $('WordPress投稿').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "featured_media",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "78e09af1-634c-40f9-9733-3deba89c7933",
+      "name": "WordPress投稿に画像設定",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1936,
+        352
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "wordpressApi": {
+          "id": "69ilK9ruCsSrQCOs",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=✅ アイヒモのブログ記事が完成しました！\n\nタイトル：{{ $('ブログ詳細を結合').item.json.data[2].output.title }}\n📝 WordPress下書き: {{ $('WordPress投稿').item.json.link }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "completion-notification-001",
+      "name": "完了通知",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        2128,
+        352
+      ],
+      "webhookId": "aihimo-blog-complete",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Tavily AI検索\n\nTavily専用ノードで最新情報を調査し、\nCodeノードで結果を整形します。",
+        "width": 420,
+        "color": 4
+      },
+      "id": "dd83becf-0c80-4b49-8dfa-13b10efcd645",
+      "name": "メモ：Tavily調査",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -624,
+        144
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## アイヒモのブログ執筆\n\nCLAUDE.meのキャラクター設定に基づき、\nアイヒモの視点でブログを生成します。",
+        "width": 420,
+        "color": 3
+      },
+      "id": "cc5653e5-0b57-4b6b-8db4-cfeed527dfa0",
+      "name": "メモ：アイヒモブログ生成",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## HTML変換とWordPress投稿\n\nHTML形式に変換し、SEOメタデータを生成して\nWordPressに下書きとして投稿します。",
+        "width": 620,
+        "color": 7
+      },
+      "id": "58b05c61-5efc-4eb5-9b20-c9c7d43d01aa",
+      "name": "メモ：HTML変換とWordPress投稿",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        576,
+        144
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "フォーム送信時": {
+      "main": [
+        [
+          {
+            "node": "Tavily検索",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily検索": {
+      "main": [
+        [
+          {
+            "node": "Tavily結果を整形",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily結果を整形": {
+      "main": [
+        [
+          {
+            "node": "アイヒモブログライター",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "アイヒモブログライター",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "アイヒモブログライター": {
+      "main": [
+        [
+          {
+            "node": "HTML作成",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "タイトル・スラッグ・メタ作成",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "結合",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTML作成": {
+      "main": [
+        [
+          {
+            "node": "結合",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "タイトル・スラッグ・メタ作成": {
+      "main": [
+        [
+          {
+            "node": "結合",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "タイトル・スラッグ・メタ作成",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "構造化出力パーサー": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "タイトル・スラッグ・メタ作成",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "結合": {
+      "main": [
+        [
+          {
+            "node": "ブログ詳細を結合",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ブログ詳細を結合": {
+      "main": [
+        [
+          {
+            "node": "HTMLクリーンアップ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTMLクリーンアップ": {
+      "main": [
+        [
+          {
+            "node": "WordPress投稿",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress投稿": {
+      "main": [
+        [
+          {
+            "node": "画像URL設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像URL設定": {
+      "main": [
+        [
+          {
+            "node": "画像取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像取得": {
+      "main": [
+        [
+          {
+            "node": "WordPressに画像アップロード",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPressに画像アップロード": {
+      "main": [
+        [
+          {
+            "node": "WordPress投稿に画像設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress投稿に画像設定": {
+      "main": [
+        [
+          {
+            "node": "完了通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "remove-gdrive-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "473228005ea31adb7a041f8b22aecdbae142cdd88016811bd0eaa187a833c47a"
+  },
+  "id": "qSs7TQoQYAKPu65E",
+  "tags": []
+}
