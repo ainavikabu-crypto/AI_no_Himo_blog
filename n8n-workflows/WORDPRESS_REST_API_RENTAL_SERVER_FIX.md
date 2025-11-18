@@ -30,6 +30,236 @@ https://あなたのサイト.com/wp-json/wp/v2/posts
 | `500 Internal Server Error` | ⚠️ サーバーエラー | → **診断E** へ |
 | 何も表示されない（真っ白） | 🛡️ WAFブロック | → **診断F** へ |
 
+### ステップ2: n8nでのエラーを確認
+
+n8nで実行した際のエラーコードを確認：
+
+| n8nのエラーコード | 診断結果 | 次のステップ |
+|----------------|---------|------------|
+| `ETIMEDOUT` | ⏱️ タイムアウト（国外IP制限） | → **診断G** へ |
+| `401 Unauthorized` | 🔑 認証エラー | → **診断A** へ |
+| その他 | ❓ その他の問題 | → **診断A** から順に確認 |
+
+---
+
+## 🚨 診断G: ETIMEDOUTエラー（n8n Cloud + エックスサーバー）【重要】
+
+### 症状
+- ブラウザで `/wp-json/wp/v2/posts` にアクセスすると**JSON形式のデータが表示される**（正常）
+- n8n Cloudで実行すると `ETIMEDOUT` エラーが発生
+- エラーメッセージ：`connect ETIMEDOUT 85.131.213.82:443`
+
+### 原因
+**エックスサーバーの「国外IPアクセス制限」がn8n Cloud（海外サーバー）からのアクセスをブロックしています。**
+
+n8n Cloudは海外のサーバーで動作しているため、エックスサーバーの国外IP制限に引っかかります。
+一方、あなたのブラウザは日本国内からアクセスしているため正常に動作します。
+
+### 解決方法
+
+#### 方法1: エックスサーバーの「国外IPアクセス制限」を設定（推奨）
+
+**G-1. サーバーパネルで設定を確認**
+
+1. **エックスサーバーのサーバーパネル**にログイン
+   - https://www.xserver.ne.jp/login_server.php
+
+2. **「WordPress セキュリティ設定」**をクリック
+
+3. 対象ドメインを選択
+
+4. **「国外IPアクセス制限設定」**タブを開く
+
+5. 以下の項目を確認：
+
+| 項目 | 推奨設定 | 説明 |
+|-----|---------|------|
+| **ダッシュボード アクセス制限** | ON（推奨） | WordPress管理画面への国外アクセスをブロック |
+| **XML-RPC API アクセス制限** | ON（推奨） | XML-RPC APIへの国外アクセスをブロック |
+| **REST API アクセス制限** | **OFF** | **これをOFFにする**（n8n Cloud用） |
+| **ログイン ページ アクセス制限** | ON（推奨） | ログインページへの国外アクセスをブロック |
+
+**重要：「REST API アクセス制限」だけをOFFにしてください。**
+
+6. **「設定する」**をクリック
+
+7. n8nで再度テスト実行
+
+**✅ これで解決する可能性が非常に高いです！**
+
+---
+
+#### 方法2: .htaccessでn8n CloudのIPアドレスを許可（上級者向け）
+
+エックスサーバーの設定変更ができない場合、`.htaccess`でn8n CloudのIPアドレスを許可します。
+
+**G-2. n8n CloudのIPアドレスを確認**
+
+n8n Cloudが使用する可能性のあるIPアドレス範囲：
+- n8n Cloudは複数のIPアドレスから接続する可能性があるため、完全なリストの取得が困難
+
+**対処法：REST APIへのアクセスをすべて許可**
+
+WordPressのルートディレクトリの `.htaccess` に以下を追加：
+
+```apache
+# REST API への国外IPアクセスを許可
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} ^/wp-json/ [NC]
+    RewriteRule ^ - [L]
+</IfModule>
+```
+
+または、エックスサーバー特有の設定：
+
+```apache
+# エックスサーバーの国外IP制限からREST APIを除外
+<FilesMatch "wp-json">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+```
+
+**⚠️ 注意：**
+- `.htaccess` の編集前に**必ずバックアップ**を取る
+- 構文エラーがあるとサイト全体が表示されなくなる可能性あり
+
+---
+
+#### 方法3: n8nをセルフホスト（日本国内サーバー）で運用（長期的な解決策）
+
+n8n Cloudではなく、日本国内のサーバーでn8nをセルフホストすることで、国外IP制限の問題を根本的に解決できます。
+
+**セルフホストのメリット：**
+- エックスサーバーの国外IP制限を回避
+- より高速な接続
+- カスタマイズの自由度が高い
+
+**セルフホストの選択肢：**
+1. **VPS（日本国内）**
+   - ConoHa VPS
+   - さくらのVPS
+   - Kagoya CLOUD VPS
+
+2. **Docker（ローカル）**
+   ```bash
+   docker run -it --rm \
+     --name n8n \
+     -p 5678:5678 \
+     -v ~/.n8n:/home/node/.n8n \
+     n8nio/n8n
+   ```
+
+3. **n8n Cloud + VPN（日本国内）**
+   - 日本国内のVPNサーバーを経由してアクセス
+
+**セルフホストの手順は後述します（必要に応じて）。**
+
+---
+
+#### 方法4: REST APIエンドポイントをプロキシ経由で公開（高度）
+
+国外IP制限を維持しつつ、特定のREST APIエンドポイントだけを公開する方法です。
+
+**G-3. カスタムプラグインを作成**
+
+`/wp-content/plugins/n8n-rest-proxy/n8n-rest-proxy.php` を作成：
+
+```php
+<?php
+/**
+ * Plugin Name: n8n REST API Proxy
+ * Description: n8n用のREST APIプロキシ
+ * Version: 1.0
+ */
+
+// カスタムエンドポイントを追加
+add_action('rest_api_init', function() {
+    register_rest_route('n8n/v1', '/create-post', array(
+        'methods' => 'POST',
+        'callback' => 'n8n_create_post',
+        'permission_callback' => 'n8n_verify_token',
+    ));
+});
+
+// トークン認証
+function n8n_verify_token($request) {
+    $token = $request->get_header('X-N8N-Token');
+    $expected_token = 'YOUR_SECRET_TOKEN_HERE'; // 複雑なトークンに変更
+    return $token === $expected_token;
+}
+
+// 投稿作成
+function n8n_create_post($request) {
+    $params = $request->get_json_params();
+
+    $post_data = array(
+        'post_title'   => sanitize_text_field($params['title']),
+        'post_content' => wp_kses_post($params['content']),
+        'post_status'  => 'draft',
+        'post_author'  => 2, // 著者IDを指定
+    );
+
+    $post_id = wp_insert_post($post_data);
+
+    if (is_wp_error($post_id)) {
+        return new WP_Error('create_failed', 'Failed to create post', array('status' => 500));
+    }
+
+    return array(
+        'success' => true,
+        'post_id' => $post_id,
+        'post_url' => get_permalink($post_id),
+    );
+}
+```
+
+**n8nで使用：**
+- HTTPリクエストノードを使用
+- URL: `https://あなたのサイト.com/wp-json/n8n/v1/create-post`
+- Headers: `X-N8N-Token: YOUR_SECRET_TOKEN_HERE`
+
+**⚠️ この方法は上級者向けです。**
+
+---
+
+### 推奨される解決方法の優先順位
+
+1. **方法1: エックスサーバーの「REST API アクセス制限」をOFF**
+   - 最も簡単で推奨
+   - 管理画面から数クリックで完了
+   - セキュリティリスクは低い（認証が必要なため）
+
+2. **方法2: .htaccessで許可**
+   - サーバーパネルにアクセスできない場合
+
+3. **方法3: n8nをセルフホスト**
+   - 長期的な運用を考える場合
+   - より高速で安定
+
+4. **方法4: プロキシ経由**
+   - 高度なセキュリティが必要な場合
+
+---
+
+### G-4. テスト手順
+
+設定変更後、以下の手順でテスト：
+
+1. エックスサーバーの設定を変更（「REST API アクセス制限」をOFF）
+2. 5分待つ（設定反映に時間がかかる場合あり）
+3. n8nで再度実行
+4. 成功すれば完了！
+
+**成功した場合：**
+- `ETIMEDOUT` エラーが消える
+- WordPressに投稿が作成される
+
+**まだエラーが出る場合：**
+- 設定が反映されていない可能性（15分待つ）
+- 他の制限がかかっている可能性（方法2を試す）
+
 ---
 
 ## 診断A: REST APIは動くが、n8nで401エラー
